@@ -49,10 +49,24 @@ public class Client {
             this.dos = new DataOutputStream(cl.getOutputStream());
             this.dos.writeInt(opt);
             this.dos.close();
-            this.cl.close();
+            cl.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean receiveConfirm(){         
+        boolean aux = false;
+        try {
+            this.cl = new Socket(this.host, this.pto);
+            this.dis = new DataInputStream(cl.getInputStream());
+            aux = dis.readBoolean();
+            this.dos.close();
+            cl.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return aux;
     }
 
     public void zipDir(String dir, ZipOutputStream zos){            // Comprimir directorio
@@ -86,7 +100,7 @@ public class Client {
         }
     }
 
-    public void SendDir(String dir){                                        //  Enviar string
+    public void sendDir(String dir){                                        //  Enviar string
         try{
             this.cl = new Socket(this.host, this.pto);
             this.dos = new DataOutputStream(cl.getOutputStream());
@@ -99,13 +113,20 @@ public class Client {
         }
     }
 
-    public void reciveFile(){                                               //  Recibir un archivo
+    public boolean reciveFile(){                                               //  Recibir un archivo
         try{
             this.cl = new Socket(this.host, this.pto);
             DataInputStream dis = new DataInputStream(cl.getInputStream());
             String name = dis.readUTF();
             long size = dis.readLong();
             
+            if(name.equals("") && size == 0){
+                dis.close();
+                cl.close();
+                return false;
+            }
+                
+
             System.out.println("Archivo: " + name + "\nLongitud: " + size + "\nDireccion: " + cl.getInetAddress() + ":" + cl.getLocalPort());
             
             DataOutputStream dos = new DataOutputStream (new FileOutputStream(name));
@@ -131,28 +152,33 @@ public class Client {
         }catch(Exception e){
             e.printStackTrace();
         }
+        return true;
     }
 
     public void uploadFile(){                                               //  Subir un archivo
         try{
             this.cl = new Socket(this.host, this.pto);
             this.jfc = new JFileChooser();
+            this.jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
             int r = jfc.showOpenDialog(null);
             
             if (r == JFileChooser.APPROVE_OPTION){
-                String name, path;
-                long size;
+                String name = "";
+                String path = "";
+                long size = 0;
                 File f = jfc.getSelectedFile();
 
-                if(f.isDirectory()){
-                    ZipOutputStream zos = new ZipOutputStream(new FileOutputStream("./" + f.getName() + ".zip ")); 
-                    zipDir(f.getAbsolutePath(), zos); 
-                    File zipFile = new File("./" + f.getName() + ".zip ");
+                String OUTPUT_ZIP_FILE = f.getName() + ".zip";
 
-                    name = zipFile.getName();
-                    size = zipFile.length();
-                    path = zipFile.getAbsolutePath();
-                    zos.close(); 
+                if(f.isDirectory()){
+                    System.out.println(f.getAbsolutePath());
+                    ZipUtils zipDirectory = new ZipUtils(f.getAbsolutePath());
+                    zipDirectory.generateFileList(new File(f.getAbsolutePath()));
+                    zipDirectory.zipIt(OUTPUT_ZIP_FILE);
+
+                    name = new File(OUTPUT_ZIP_FILE).getName();
+                    size = new File(OUTPUT_ZIP_FILE).length();
+                    path = new File(OUTPUT_ZIP_FILE).getAbsolutePath();
                 }else{
                     name = f.getName();
                     size = f.length();
@@ -177,7 +203,10 @@ public class Client {
                     por = (int)((aux*100)/size);
                     System.out.print("\rPorcentaje enviado " + por + "% \nDireccion: " + path);
                 }
-                
+
+                f = new File(OUTPUT_ZIP_FILE);
+                f.delete();
+
                 this.dis.close();
                 this.dos.close();
                 this.cl.close();
@@ -186,6 +215,8 @@ public class Client {
                 System.out.println("Abortar operacion");
                 this.dos = new DataOutputStream(cl.getOutputStream());
                 this.dos.writeUTF("");
+                this.dos.flush();
+                this.dos.writeLong(0);
                 this.dos.flush();
                 this.dos.close();
                 this.cl.close();

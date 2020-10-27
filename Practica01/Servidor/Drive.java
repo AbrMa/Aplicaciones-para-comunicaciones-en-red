@@ -5,11 +5,11 @@ import Directory.Directory;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.net.Socket;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-
 
 public class Drive {
     static File file;
@@ -19,181 +19,176 @@ public class Drive {
     static Socket cl;
     static String nameFile, path;
     static Directory directory;
-    static Server form1Server;
+    static Server driveServer;
     static DefaultTreeModel model;
     static DefaultMutableTreeNode root;
     static DataInputStream dis;
     static DataOutputStream dos;
 
-    public static void getPath(File f, DefaultTreeModel model, DefaultMutableTreeNode root){        //  Crear ruta 
+    public static void getPath(File f, DefaultTreeModel model, DefaultMutableTreeNode root) { 
         File directorys[] = f.listFiles();
 
-        for(int i = 0; i < directorys.length; ++i){
+        for (int i = 0; i < directorys.length; ++i) {
             DefaultMutableTreeNode folder = new DefaultMutableTreeNode(directorys[i].getName());
-            model.insertNodeInto(folder , root, i);
-            
-            if(directorys[i].isDirectory()){
-                System.out.println("Directorio -> " + directorys[i].getName());
+            model.insertNodeInto(folder, root, i);
+
+            if (directorys[i].isDirectory()) {
+                System.out.println(f.getName() + "/" + directorys[i].getName());
                 getPath(directorys[i], model, folder);
-            }else{
-                System.out.println( "Archivo: " + directorys[i].getName());
+            } else {
+                System.out.println(f.getName() + " -> Archivo: " + directorys[i].getName());
             }
         }
     }
 
-    public static void makeDirectory(String newDirectory){                                          //  Crea un directorio
+    public static void makeDirectory(String newDirectory) { 
+        System.out.println("Crear un nuevo directorio");
         File pos = new File(path + "/" + newDirectory);
-        System.out.println("Pos: " + path + "\nCarpeta: " + newDirectory + "\nPath: " + pos.getAbsolutePath());
 
-        if(!pos.exists()) {
+        if (!pos.exists()) {
             try {
-                if(pos.mkdirs())
-                    System.out.println("Carpeta creada");
-                else 
-                    System.out.println("No se creo la carpeta");
-            }catch(SecurityException se) { 
-                se.printStackTrace(); 
+                if (pos.mkdirs()){
+                    System.out.println("Directorio creado");
+                    System.out.println("Pos: " + path + "\nCarpeta: " + newDirectory + "\nPath: " + pos.getAbsolutePath());
+                }
+                else
+                    System.out.println("Error, directorio no creado");
+            } catch (SecurityException se) {
+                se.printStackTrace();
             }
+        } else{
+            System.out.println("Directorio ya existente con ese nombre");
+            //  Enviar retroalimentacion
         }
-        else
-            System.out.println("El directorio ya existe");
     }
 
-    public static boolean removeFile(File file){                                                       //  Eliminar un archivo
+    public static boolean removeFile(File file) { 
         System.out.println(file.getAbsolutePath());
-        
-        if(file.exists()){
+
+        if (file.exists()) {
             System.out.println("Archivo Encontrado");
-        
-            if (file.isDirectory()){
-                System.out.println("Carpeta");
+
+            if (file.isDirectory()) {
                 File items[] = file.listFiles();
-                
-                if(items.length > 0){
-                    for(int i = 0 ;i < items.length;i++){
-                        if(items[i].isDirectory())
-                            removeFile(items[i]);
-                        else{
-                            items[i].delete();
-                            System.out.println("Archivo: " + file.getPath() + " borrado");
-                        }
+
+                for (int i = 0; i < items.length; i++) {
+                    if (items[i].isDirectory())
+                        removeFile(items[i]);
+                    else {
+                        items[i].delete();
+                        System.out.println("Archivo: " + file.getPath() + " borrado");
                     }
-                }              
+                }
+
                 file.delete();
                 System.out.println("Archivo: " + file.getPath() + " borrado");
-                
+            } else {
+                file.delete();
+                System.out.println("Archivo: " + file.getPath() + " borrado");
             }
-            else{
-                file.delete();
-                System.out.println("Archivo: " + file.getPath() + " borrado");
-            }         
-        }
-        else{
+        } else {
             System.out.println("Archivo no encontrado");
             return false;
         }
         return true;
     }
 
-    public static void main(String[] args) {
-        path = "Drive";                                             //  Armar el arbol
+    public static void doTreeDirectory(DefaultMutableTreeNode r, DefaultTreeModel m, JTree t) {
         root = new DefaultMutableTreeNode("Drive");
         model = new DefaultTreeModel(root);
-        tree = new JTree(root);                                   
+        tree = new JTree(root);
+    }
 
-        try {   
-            form1Server = new Server(3000);
-            form1Server.startConnection();         
-            int closeClient;         
+    public static void sendTreeDirectory(Server driveServer) throws IOException {
+        directory = new Directory(tree);
+        cl = driveServer.getSocket().accept();
+        driveServer.sendDirectory(cl, directory);
+    }
+
+    public static void main(String[] args) {
+        path = "Drive";                                             
+        doTreeDirectory(root, model, tree);                               
+        driveServer = new Server(3000);   
+
+        try {       
+            driveServer.startConnection();         
+            
             while(true){
-                closeClient = 0;
+                int closeClient = 0;  
                 file = new File(path);
+                
+                System.out.println("\nArchivos en Drive(Servidor)");
                 getPath(file, model, root);
-                directory = new Directory(tree);
-                cl = form1Server.getSocket().accept();
-                form1Server.SendDirectory(cl, directory);
-                System.out.println("Directorio Enviado (jtree)");
+                sendTreeDirectory(driveServer);
+                System.out.println("\nDirectorio Enviado (jtree) \nConexion: " + driveServer.getSocket().getInetAddress() + "\n");
                 cl.close();
 
                 for(;;){
-                    root =  null;
-                    model = null;
-                    tree = null;
-                    cl = form1Server.getSocket().accept();
-                    opt = form1Server.receiveAction(cl);
+                    doTreeDirectory(null, null, null);     
+                    cl = driveServer.getSocket().accept();
+                    System.out.println("\nEsperando instrucciones");
+                    opt = driveServer.receiveAction(cl);
 
                     switch(opt){        
                         case 1:     //  Subir archivo
-                                String dir = form1Server.receiveFileName();
+                            String dir = driveServer.receiveFileName();
+                            driveServer.uploadFile(path + dir);
                                 
-                                if(!dir.equals(""))
-                                    form1Server.uploadFile(path + dir);
-                                
-                                
-                                root = new DefaultMutableTreeNode("Drive");
-                                model = new DefaultTreeModel(root);
-                                tree = new JTree(root);
-                            
-                                getPath(file, model, root);
-                                directory = new Directory(tree);
-                                cl = form1Server.getSocket().accept();
-                                form1Server.SendDirectory(cl, directory);
+                            doTreeDirectory(root, model, tree); 
+                            System.out.println("\nArchivos en Drive(Servidor)");                              
+                            getPath(file, model, root);
+                            sendTreeDirectory(driveServer);
                             break;
-
                         case 2:     //  Hacer directorio
-                                String newDirectory = form1Server.receiveFileName();
-                                makeDirectory(newDirectory);    
+                            String newDirectory = driveServer.receiveFileName();
+                            makeDirectory(newDirectory);    
                                 
-                                root = new DefaultMutableTreeNode("Drive");
-                                model = new DefaultTreeModel(root);
-                                tree = new JTree(root);    
-                                
-                                getPath(file, model, root);
-                                directory = new Directory( tree );
-                                cl = form1Server.getSocket().accept();
-                                form1Server.SendDirectory(cl, directory);
+                            doTreeDirectory(root, model, tree);   
+                            System.out.println("\nArchivos en Drive(Servidor)");                            
+                            getPath(file, model, root);
+                            sendTreeDirectory(driveServer);
                             break;
 
                         case 3:     //  Eliminar archivo
-                                nameFile = form1Server.receiveFileName();
-                                String pathFile = path + '/' + nameFile;
-                                File fileDelete = new File(pathFile);
+                            nameFile = driveServer.receiveFileName();
+                            String pathFile = path + '/' + nameFile;
+                            File fileDelete = new File(pathFile);
                                 
-                                removeFile(fileDelete);
+                            System.out.println("\nEliminar archivo");
+                            
+                            if(removeFile(fileDelete))
+                                driveServer.sendConfirm(true);
+                            else
+                                driveServer.sendConfirm(false);
                                 
-                                root = new DefaultMutableTreeNode("Drive");
-                                model = new DefaultTreeModel(root);
-                                tree = new JTree(root);    
-
-                                getPath(file, model, root);
-                                directory = new Directory(tree);
-                                cl = form1Server.getSocket().accept();
-                                form1Server.SendDirectory(cl, directory);
+                            doTreeDirectory(root, model, tree);     
+                            System.out.println("\nArchivos en Drive(Servidor)");                          
+                            getPath(file, model, root);
+                            sendTreeDirectory(driveServer);
                             break;
 
                         case 4:     //  Descargar archivo
-                                String fileDownload = form1Server.receiveFileName();
-                                String foundFile = path + "/" + fileDownload;
-                                form1Server.getFile(foundFile, fileDownload);
+                            System.out.println("\nDescargar archivo");
+                            String fileDownload = driveServer.receiveFileName();
+                            String foundFile = path + "/" + fileDownload;
+                            driveServer.sendFile(foundFile, fileDownload);
                               
-                                root = new DefaultMutableTreeNode("Drive");
-                                model = new DefaultTreeModel(root);
-                                tree = new JTree(root);    
-                                getPath(file, model, root);
-                                
-                                directory = new Directory(tree);
-                                cl = form1Server.getSocket().accept();
-                                form1Server.SendDirectory(cl, directory);
+                            doTreeDirectory(root, model, tree);   
+                            System.out.println("\nArchivos en Drive(Servidor)");                            
+                            getPath(file, model, root);
+                            sendTreeDirectory(driveServer);
                             break;
                             
-                        case 5:     //  Salir
-                                cl.close();
-                                closeClient = 1;
+                        case 5:     //  Terminar conexion 
+                            closeClient = 1;
+                            cl.close();
+                            doTreeDirectory(root, model, tree);   
                             break;
                     }
                     
                     if(closeClient == 1)
                         break;
+                        
                 } 
             }
         } catch (Exception e) {

@@ -1,4 +1,4 @@
-package Servidor;
+package Cliente;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class ZipUtils {
@@ -28,11 +27,11 @@ public class ZipUtils {
             fos = new FileOutputStream(zipFile);
             zos = new ZipOutputStream(fos);
 
-            System.out.println("Zip: " + zipFile);
+            System.out.println("Output to Zip : " + zipFile);
             FileInputStream in = null;
 
             for (String file: this.fileList) {
-                System.out.println("Archivo agregado : " + file);
+                System.out.println("File Added : " + file);
                 ZipEntry ze = new ZipEntry(source + File.separator + file);
                 zos.putNextEntry(ze);
                 try {
@@ -47,7 +46,7 @@ public class ZipUtils {
             }
 
             zos.closeEntry();
-            System.out.println("Directorio comprimido corectamente");
+            System.out.println("Folder successfully compressed");
 
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -71,44 +70,6 @@ public class ZipUtils {
             for (String filename: subNote) {
                 generateFileList(new File(node, filename));
             }
-        }
-    }
-
-    public void unzipFile(String destFolder){
-        File dir = new File(destFolder);       
-        
-        if(!dir.exists()) dir.mkdirs();
-
-        FileInputStream fis;
-        byte[] buffer = new byte[1024];
-        
-        try {
-            fis = new FileInputStream(SOURCE_FOLDER);
-            ZipInputStream zis = new ZipInputStream(fis);
-            ZipEntry ze = zis.getNextEntry();
-            
-            while(ze != null){
-                String fileName = ze.getName();
-                File newFile = new File(destFolder + File.separator + fileName);
-                System.out.println("Descomprimir en "+ newFile.getAbsolutePath());
-                
-                new File(newFile.getParent()).mkdirs();
-                FileOutputStream fos = new FileOutputStream(newFile);
-                int len;
-                while ((len = zis.read(buffer)) > 0) {
-                fos.write(buffer, 0, len);
-                }
-                fos.close();
-                //close this ZipEntry
-                zis.closeEntry();
-                ze = zis.getNextEntry();
-            }
-            //close last ZipEntry
-            zis.closeEntry();
-            zis.close();
-            fis.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 

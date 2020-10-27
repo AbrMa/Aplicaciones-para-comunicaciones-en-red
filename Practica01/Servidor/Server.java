@@ -13,40 +13,40 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalDateTime;
 
-public class Server {                                                   //  Servidor
+public class Server {                                                   
     private int pto;
     private ServerSocket ss;                    
     private DataInputStream dis;
     private DataOutputStream dos;
     private ObjectOutputStream oos;
 
-    public Server(int pto) {                                            // Constructor
+    public Server(int pto) {                                            
         this.pto = pto;
     }
 
-    public ServerSocket getSocket() {                                   //  Retornar serverSocket
+    public ServerSocket getSocket() {                                   
         return this.ss;
     }
 
-    public void startConnection() {                                     //    Inicia la conexion 
+    public void startConnection() {                                     
         try {
             this.ss = new ServerSocket(this.pto);
-            System.out.println("Servidor iniciado en el puerto " + ss.getLocalPort() + ", Esperando cliente");
+            System.out.println("Servidor iniciado, Puerto: " + ss.getLocalPort() + "\nEsperando cliente");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void endConnection(){                                        //  Termina la conexion
+    public void endConnection(){                                        
         try {
-            System.out.println("Cerrando servidor en el puerto " + ss.getLocalPort() );
+            System.out.println("Cerrando servidor, Puerto: " + ss.getLocalPort() );
             this.ss.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void SendDirectory(Socket cl, Directory file){               //  Envia un Jtree
+    public void sendDirectory(Socket cl, Directory file){               
         try {
             this.oos = new ObjectOutputStream(cl.getOutputStream());
             this.oos.writeObject(file);
@@ -57,7 +57,7 @@ public class Server {                                                   //  Serv
         }
     }
 
-    public int receiveAction(Socket cl){                                //  Recibe la instruccion a realizar
+    public int receiveAction(Socket cl){                                
         try {
             this.dis = new DataInputStream(cl.getInputStream());
             int option = dis.readInt();
@@ -68,19 +68,26 @@ public class Server {                                                   //  Serv
         return -1;
     }
 
-    public String uploadFile(String path){                              //  Actualiza el Drive
+    public void uploadFile(String path){                              
         try {
+            System.out.println("\nSubir un archivo al Drive(Servidor)");        
             Socket cl = ss.accept();
             this.dis = new DataInputStream(cl.getInputStream());
             String name = dis.readUTF();
             long size = dis.readLong();
+            
+            if(name.equals("") && size == 0){
+                System.out.println("Operacion Cancelada");        
+                return;
+            }
 
             System.out.println("Archivo: " + name + "\nLongitud: " + size + "\nDireccion: " + cl.getInetAddress() + ":" + cl.getLocalPort());
             
             String save = path + "/" + name;
             this.dos = new DataOutputStream(new FileOutputStream(save));
             long aux = 0;
-            int n = 0, por = 0;
+            int por = 0;
+            int n = 0;
             
             while(aux < size){
                 byte[] b = new byte[3000];
@@ -94,13 +101,18 @@ public class Server {                                                   //  Serv
             
             dos.close();
             dis.close();
+
+            File f = new File(save);
+            ZipUtils unzipFile = new ZipUtils(f.getAbsolutePath());
+            unzipFile.unzipFile(path);
+            f.delete();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return "";
     }
 
-    public String receiveFileName(){                                        //  Recibe el nombre de un archivo 
+    public String receiveFileName(){                                        
         try {
             Socket cl = ss.accept();
             this.dis = new DataInputStream(cl.getInputStream());
@@ -114,7 +126,20 @@ public class Server {                                                   //  Serv
         return "";
     }
 
-    public void getFile(String file, String nameFolder){                                           //  Enviar un archivo
+    public void sendConfirm(boolean val){                                        
+        try {
+            Socket cl = ss.accept();
+            this.dos = new DataOutputStream(cl.getOutputStream());
+            this.dos.writeBoolean(val);
+            this.dos.flush();
+            this.dos.close();
+            cl.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendFile(String file, String nameFolder){
         try {
             Socket cl = ss.accept();
             String name = "";
@@ -122,14 +147,28 @@ public class Server {                                                   //  Serv
             long size = 0;
 
             File f = new File(file);
+            
+            if(!f.exists()){
+                System.out.println("No existe ese archivo");
+                this.dos = new DataOutputStream (cl.getOutputStream());
+                dos.writeUTF("");
+                dos.flush();
+                dos.writeLong(0);
+                dos.flush();
+                dos.close();
+                cl.close();
+                return;
+            }
+                
+            String OUTPUT_ZIP_FILE = "Folder-" + nameFolder + "-" + LocalDateTime.now() + ".zip";
 
             if(f.isDirectory()){
-                String OUTPUT_ZIP_FILE = "Folder-" + nameFolder + LocalDateTime.now() + ".zip";
                 System.out.println(f.getAbsolutePath());
                 ZipUtils zipDirectory = new ZipUtils(f.getAbsolutePath());
                 zipDirectory.generateFileList(new File(f.getAbsolutePath()));
                 zipDirectory.zipIt(OUTPUT_ZIP_FILE);
-                name = "Download-" + new File(OUTPUT_ZIP_FILE).getName();
+                
+                name = "Upload-" + new File(OUTPUT_ZIP_FILE).getName();
                 size = new File(OUTPUT_ZIP_FILE).length();
                 path = new File(OUTPUT_ZIP_FILE).getAbsolutePath();
             }else{
@@ -158,6 +197,9 @@ public class Server {                                                   //  Serv
                 por = (int)((aux*100)/size);
                 System.out.print("\rPorcentaje enviado "+ por +" %");
             }
+
+            f = new File(OUTPUT_ZIP_FILE);
+            f.delete();
 
             dis.close();
             dos.close();

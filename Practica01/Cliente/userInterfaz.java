@@ -9,7 +9,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
-import javax.swing.WindowConstants;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 public class userInterfaz {
     String host = "localhost";
@@ -97,6 +97,19 @@ public class userInterfaz {
         tree = dir.getDirectory();
         tree.setEditable(true);
         tree.setBounds(10, 30, 610, 500);
+        tree.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if(evt.getClickCount() == 2) {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)
+                    tree.getLastSelectedPathComponent();
+
+                    if (node == null)   return;
+
+                    Object nodeObject = node.getUserObject();
+                    System.out.println("Selected node : " + nodeObject);
+                }
+            }
+        });
         f.add(tree);
 
         jsp = new JScrollPane(tree);
@@ -104,7 +117,7 @@ public class userInterfaz {
         jsp.setBounds(10, 30, 610, 500);
         jsp.setVisible(true);
         f.add(jsp);     
-        
+
         f.setLayout(null);  
         f.setVisible(true); 
 
@@ -112,10 +125,10 @@ public class userInterfaz {
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
                 Client cl = new Client(host, pto);
                 cl.sendAction(5);
+                System.exit(0);
             }
         });
-        
-        f.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    
     }
 
     public void uploadAction(){
@@ -123,12 +136,14 @@ public class userInterfaz {
         cl.sendAction(1);
         String inDir = jtf.getText();
 
-        if(inDir.equals(""))
+        if(inDir.equals("")){
             inDir = "/";
-        else
+        }
+        else{
             inDir = "/" + inDir;
-
-        cl.SendDir(inDir);
+        }
+            
+        cl.sendDir(inDir);
         cl.uploadFile();
         
         Directory dir = cl.receiveDirectory();
@@ -144,7 +159,7 @@ public class userInterfaz {
         if (!(nameDir.equals(""))){
             Client cl = new Client(host, pto);        
             cl.sendAction(2);
-            cl.SendDir(nameDir);
+            cl.sendDir(nameDir);
             Directory dir = cl.receiveDirectory();
             JTree jt = dir.getDirectory();
             jsp.setViewportView(jt);
@@ -163,8 +178,15 @@ public class userInterfaz {
         if(!(nameFile.equals(""))){
             Client cl = new Client(host, pto);
             cl.sendAction(3);
-            cl.SendDir(nameFile);
-            
+            cl.sendDir(nameFile);
+
+            if(cl.receiveConfirm()){
+                JOptionPane.showMessageDialog(null, "Archivo Eliminado");
+            }
+            else{
+                JOptionPane.showMessageDialog(null, "Archivo no existente");
+            }
+
             Directory dir = cl.receiveDirectory();
             JTree jt = dir.getDirectory();
             jsp.setViewportView(jt);
@@ -172,8 +194,8 @@ public class userInterfaz {
             jtf.setText("");
         }
         else{
-            System.out.println("Eliminar Archivo: Error, ingrese el nombre del directorio"); 
-            JOptionPane.showMessageDialog(null, "Error! Ingrese el nombre del directorio");
+            System.out.println("Eliminar Archivo: Error, ingrese el nombre del Archivo"); 
+            JOptionPane.showMessageDialog(null, "Error! Ingrese el nombre del Archivo");
         }  
     }
 
@@ -183,8 +205,13 @@ public class userInterfaz {
         if (!(nameFile.equals(""))){
             Client cl = new Client(host, pto);
             cl.sendAction(4);
-            cl.SendDir(nameFile);
-            cl.reciveFile();
+            cl.sendDir(nameFile);
+            
+            if(cl.reciveFile())
+                JOptionPane.showMessageDialog(null, "Archivo Descargado");    
+            else
+                JOptionPane.showMessageDialog(null, "Error! Archivo no existente");
+
 
             Directory dir = cl.receiveDirectory();
             JTree jt = dir.getDirectory();
@@ -193,8 +220,8 @@ public class userInterfaz {
             jtf.setText("");
         }
         else{
-            System.out.println("Descargar: Error, ingrese el nombre del directorio"); 
-            JOptionPane.showMessageDialog(null, "Error! Ingrese el nombre del directorio");
+            System.out.println("Descargar Archivo: Error, ingrese el nombre del Archivo"); 
+            JOptionPane.showMessageDialog(null, "Error! Ingrese el nombre del Archivo");
         }  
     }
 
