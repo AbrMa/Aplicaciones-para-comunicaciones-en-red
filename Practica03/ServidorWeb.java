@@ -39,24 +39,24 @@ public class ServidorWeb
 					System.out.println("\nCliente Conectado desde: "+socket.getInetAddress());
 					System.out.println("Por el puerto: "+socket.getPort());
 					System.out.println("Datos: "+line+"\r\n\r\n");
+					System.out.println(line.indexOf("?"));
 					
-					if(line.indexOf("?")==-1)
+					if(line.toUpperCase().startsWith("GET"))
 					{
-						getArch(line);
-						if(FileName.compareTo("")==0)
+						if(line.indexOf("?")==-1)
 						{
-							SendA("index.htm");
+							getArch(line);
+							if(FileName.compareTo("")==0)
+							{
+								SendA("index.htm");
+							}
+							else
+							{
+								SendA(FileName);
+							}
+							System.out.println(FileName);
 						}
-						else
-						{
-							SendA(FileName);
-						}
-						System.out.println(FileName);
-						
-						
-					}
-					else if(line.toUpperCase().startsWith("GET"))
-					{
+					else {
 						StringTokenizer tokens=new StringTokenizer(line,"?");
 						String req_a=tokens.nextToken();
 						String req=tokens.nextToken();
@@ -72,6 +72,30 @@ public class ServidorWeb
 						pw.flush();
 						pw.print("<h3><b>"+req+"</b></h3>");
 						pw.flush();
+						pw.print("</center></body></html>");
+						pw.flush();
+					}
+
+					}
+					else if(line.toUpperCase().startsWith("POST"))
+					{
+						StringTokenizer tokens=new StringTokenizer(line,"?");
+						System.out.println(tokens);
+						while (tokens.hasMoreTokens()) {
+							System.out.println(tokens.nextToken());
+						}
+						//String req_a=tokens.nextToken();
+						//System.out.println("Token1: "+req_a+"\r\n\r\n");
+						pw.println("HTTP/1.0 200 Okay");
+						pw.flush();
+						pw.println();
+						pw.flush();
+						pw.print("<html><head><title>SERVIDOR WEB");
+						pw.flush();
+						pw.print("</title></head><body bgcolor=\"#AACCFF\"><center><h1><br>Parametros Obtenidos..</br></h1>");
+						pw.flush();
+						//pw.print("<h3><b>"+req+"</b></h3>");
+						//pw.flush();
 						pw.print("</center></body></html>");
 						pw.flush();
 					}
@@ -174,7 +198,7 @@ public class ServidorWeb
 				else if (extension == "pdf") { // pdf
 					sb = sb +"Content-Type: application/pdf \n";
 				}
-				else if (extension == "jpeg" || extension == "jpg") {
+				else if (extension == "jpeg" || extension == "jpg") {// jpg
 					sb = sb +"Content-Type: image/jpeg \n";
 				}
 				sb = sb +"Content-Length: "+tam_archivo+" \n";
