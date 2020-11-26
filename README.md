@@ -6,3 +6,7 @@ Prácticas desarrolladas en el curso de Aplicaciones para comunicaciones en red 
 *   Practica 01 Servicio de transferencia de archivos
 
 El estudiante implementará una aplicación para el envío de múltiples archivos a través de la red haciendo uso de sockets de flujo. 
+
+*   Practica 03 Servidor web
+
+El estudiante implementará una aplicación de servidor web con sockets. 
