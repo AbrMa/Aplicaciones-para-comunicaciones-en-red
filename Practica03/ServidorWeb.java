@@ -27,7 +27,27 @@ public class ServidorWeb
 					bos=new BufferedOutputStream(socket.getOutputStream());
 					pw=new PrintWriter(new OutputStreamWriter(bos));
 					String line=br.readLine();
+					System.out.println(line);
+					String params = "";
+					while(params != "\n") {
+						params = br.readLine();
+						System.out.println(params);
+					}
+					/*
+					String params = br.readLine();
+					System.out.println("ALgo pasó " + params);
+					params = br.readLine();
+					System.out.println("ALgo pasó " + params);
+					params = br.readLine();
+					System.out.println("ALgo pasó " + params);
+					params = br.readLine();
+					System.out.println("ALgo pasó " + params);
+					params = br.readLine();
+					System.out.println("ALgo pasó " + params);
+					params = br.readLine();
+					System.out.println("ALgo pasó " + params);
 					//System.out.println(line);
+					*/
 					if(line==null)
 					{
 						pw.print("<html><head><title>Servidor WEB");
