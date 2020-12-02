@@ -27,27 +27,6 @@ public class ServidorWeb
 					bos=new BufferedOutputStream(socket.getOutputStream());
 					pw=new PrintWriter(new OutputStreamWriter(bos));
 					String line=br.readLine();
-					System.out.println(line);
-					String params = "";
-					while(params != "\n") {
-						params = br.readLine();
-						System.out.println(params);
-					}
-					/*
-					String params = br.readLine();
-					System.out.println("ALgo pasó " + params);
-					params = br.readLine();
-					System.out.println("ALgo pasó " + params);
-					params = br.readLine();
-					System.out.println("ALgo pasó " + params);
-					params = br.readLine();
-					System.out.println("ALgo pasó " + params);
-					params = br.readLine();
-					System.out.println("ALgo pasó " + params);
-					params = br.readLine();
-					System.out.println("ALgo pasó " + params);
-					//System.out.println(line);
-					*/
 					if(line==null)
 					{
 						pw.print("<html><head><title>Servidor WEB");
@@ -56,10 +35,11 @@ public class ServidorWeb
 						socket.close();
 						return;
 					}
-					System.out.println("\nCliente Conectado desde: "+socket.getInetAddress());
+					System.out.println("\n\n________________________________________________");
+					System.out.println("Cliente Conectado desde: "+socket.getInetAddress());
+					System.out.println("Fecha: "+java.time.LocalDate.now()+"\nHora: "+java.time.LocalTime.now()); 
 					System.out.println("Por el puerto: "+socket.getPort());
-					System.out.println("Datos: "+line+"\r\n\r\n");
-					System.out.println(line.indexOf("?"));
+					System.out.println(line);
 					
 					if(line.toUpperCase().startsWith("GET"))
 					{
@@ -67,21 +47,18 @@ public class ServidorWeb
 						{
 							getArch(line);
 							if(FileName.compareTo("")==0)
-							{
-								SendA("index.htm");
-							}
-							else
-							{
-								SendA(FileName);
-							}
-							System.out.println(FileName);
+								FileName = "index.htm";
+							SendA(FileName);
+							System.out.println("Metodo: GET");
+							System.out.println("Recurso solicitado: " + FileName);
 						}
 					else {
 						StringTokenizer tokens=new StringTokenizer(line,"?");
 						String req_a=tokens.nextToken();
 						String req=tokens.nextToken();
-						System.out.println("Token1: "+req_a+"\r\n\r\n");
-						System.out.println("Token2: "+req+"\r\n\r\n");
+						System.out.println("Metodo: GET");
+						System.out.println("Token1: "+req_a);
+						System.out.println("Token2: "+req);
 						pw.println("HTTP/1.0 200 Okay");
 						pw.flush();
 						pw.println();
@@ -99,13 +76,28 @@ public class ServidorWeb
 					}
 					else if(line.toUpperCase().startsWith("POST"))
 					{
-						StringTokenizer tokens=new StringTokenizer(line,"?");
-						System.out.println(tokens);
-						while (tokens.hasMoreTokens()) {
-							System.out.println(tokens.nextToken());
+						
+						String req = "";
+
+						String params = "";
+						while(params != null) {
+							params = br.readLine();
+							//saber si se ha terminado de leer el encabezado
+							if (params.endsWith("--") || params.startsWith("Content-Length: 0")) {
+								break;
+							}
+							else if (params.startsWith("Content-Disposition:")){
+
+								String current = params.substring(params.indexOf("\""), params.lastIndexOf("\""));
+								current = current.substring(1);
+								req += current + "=";
+								params = br.readLine();
+								params = br.readLine();
+								req += params + "\t";
+							}
 						}
-						//String req_a=tokens.nextToken();
-						//System.out.println("Token1: "+req_a+"\r\n\r\n");
+						System.out.println("Metodo: POST");
+						System.out.println("Datos recibidos: " + req);
 						pw.println("HTTP/1.0 200 Okay");
 						pw.flush();
 						pw.println();
@@ -114,10 +106,34 @@ public class ServidorWeb
 						pw.flush();
 						pw.print("</title></head><body bgcolor=\"#AACCFF\"><center><h1><br>Parametros Obtenidos..</br></h1>");
 						pw.flush();
-						//pw.print("<h3><b>"+req+"</b></h3>");
-						//pw.flush();
+						pw.print("<h3><b>"+req+"</b></h3>");
+						pw.flush();
 						pw.print("</center></body></html>");
 						pw.flush();
+					}
+					/*
+					else if(line.toUpperCase().startsWith("HEAD"))
+					{
+						String params = "";
+						while(params != null) {
+							params = br.readLine();
+							System.out.println(params);
+							if (params.endsWith("--")) {
+								break;
+							}
+						}
+					}
+					*/
+					else if(line.toUpperCase().startsWith("DELETE"))
+					{
+						String params = "";
+						while(params != null) {
+							params = br.readLine();
+							System.out.println(params);
+							if (params.endsWith("--")) {
+								break;
+							}
+						}
 					}
 					else
 					{
@@ -126,6 +142,7 @@ public class ServidorWeb
 					}
 					pw.flush();
 					bos.flush();
+					System.out.println("________________________________________________\n\n");
 				}
 				catch(Exception e)
 				{
