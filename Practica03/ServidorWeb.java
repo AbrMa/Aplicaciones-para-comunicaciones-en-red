@@ -2,12 +2,15 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 
+import java.util.concurrent.ExecutorService;  
+import java.util.concurrent.Executors;  
+
 public class ServidorWeb
 {
 	public static final int PUERTO=8000;
 	ServerSocket ss;
 		
-		class Manejador extends Thread
+		class Manejador implements Runnable
 		{
 			protected Socket socket;
 			protected PrintWriter pw;
@@ -401,10 +404,13 @@ public class ServidorWeb
 			this.ss=new ServerSocket(PUERTO);
 			System.out.println("[SERVIDOR INICIADO] OK");
 			System.out.println("[ESPERANDO CONEX CLIENTE]");
+			ExecutorService pool = Executors.newFixedThreadPool(3);
 			for(;;)
 			{
+
 				Socket accept=ss.accept();
-				new Manejador(accept).start();
+				Runnable cliente = new Manejador(accept);
+				pool.execute(cliente);
 			}
 		}
 		
