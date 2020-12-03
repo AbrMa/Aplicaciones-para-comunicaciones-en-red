@@ -36,11 +36,10 @@ public class ServidorWeb
 						return;
 					}
 					System.out.println("\n\n________________________________________________");
+					System.out.println("Server: LopezMeza Server/1.0");
 					System.out.println("Cliente Conectado desde: "+socket.getInetAddress());
 					System.out.println("Fecha: "+java.time.LocalDate.now()+"\nHora: "+java.time.LocalTime.now()); 
-					System.out.println("Por el puerto: "+socket.getPort());
-					System.out.println(line);
-					
+					System.out.println("Por el puerto: "+socket.getPort());					
 					if(line.toUpperCase().startsWith("GET"))
 					{
 						if(line.indexOf("?")==-1)
@@ -48,9 +47,22 @@ public class ServidorWeb
 							getArch(line);
 							if(FileName.compareTo("")==0)
 								FileName = "index.htm";
-							SendA(FileName);
+							
 							System.out.println("Metodo: GET");
 							System.out.println("Recurso solicitado: " + FileName);
+							File f = new File(FileName);
+							if(!(f.exists() && !f.isDirectory())) { 
+							    System.out.println("El archivo no existe");
+							    notFound404(FileName);
+							    System.out.println("HTTP/1.0 404 Not Found");
+							}
+							else {
+								System.out.println("HTTP/1.0 200 ok");
+								System.out.println("El archivo existe");
+								System.out.println("Content-Length: " + f.length());
+								System.out.println("Content-Type: " + contentType(FileName));
+								SendA(FileName);
+							}
 						}
 					else {
 						StringTokenizer tokens=new StringTokenizer(line,"?");
@@ -111,29 +123,115 @@ public class ServidorWeb
 						pw.print("</center></body></html>");
 						pw.flush();
 					}
-					/*
 					else if(line.toUpperCase().startsWith("HEAD"))
 					{
+						System.out.println(line);
+						System.out.println("Metodo: HEAD");
+						String req = "";
 						String params = "";
-						while(params != null) {
-							params = br.readLine();
-							System.out.println(params);
-							if (params.endsWith("--")) {
-								break;
+						pw.println("HTTP/1.0 200 Okay");
+						pw.flush();
+						pw.println();
+						pw.flush();
+						
+						if(line.indexOf("?")==-1)
+						{
+							getArch(line);
+							if(FileName.compareTo("")==0)
+								FileName = "index.htm";
+							System.out.println("avr " + FileName);
+							System.out.println("Recurso solicitado: " + FileName);
+							File f = new File(FileName);
+							if(!(f.exists() && !f.isDirectory())) { 
+							    System.out.println("El archivo no existe");
+							    System.out.println("HTTP/1.0 404 Not Found");
+							}
+							else {
+								System.out.println("HTTP/1.0 200 ok");
+								System.out.println("El archivo existe");
+								System.out.println("Content-Length: " + f.length());
+								System.out.println("Content-Type: " + contentType(FileName));
+								pw.print("Content-Type: " + contentType(FileName));
+								pw.flush();
 							}
 						}
+						/*
+						while(params != null) 
+						{
+							params = br.readLine();
+							//saber si se ha terminado de leer el encabezado
+							if (params.endsWith("--") || params.startsWith("Content-Length: 0")) {
+								break;
+							}
+							else if (params.startsWith("Content-Disposition:"))
+							{
+
+								String current = params.substring(params.indexOf("\""), params.lastIndexOf("\""));
+								current = current.substring(1);
+								req += current + "=";
+								params = br.readLine();
+								params = br.readLine();
+								req = params;
+								System.out.println("Recurso solicitado: " + req);
+								File f = new File(req);
+								if(!(f.exists() && !f.isDirectory())) { 
+								    System.out.println("El archivo no existe");
+								    notFound404(req);
+								    notFound404(FileName);
+								}
+								else {
+									System.out.println("El archivo existe");
+									pw.println("HTTP/1.0 200 Okay");
+								}
+							}
+						}
+						*/
+						notFound404(FileName);
+						pw.print("Connection: Closed");
+						pw.flush();
 					}
-					*/
 					else if(line.toUpperCase().startsWith("DELETE"))
 					{
+						System.out.println(line);
+						System.out.println("Metodo: DELETE");
+						String req = "";
 						String params = "";
-						while(params != null) {
-							params = br.readLine();
-							System.out.println(params);
-							if (params.endsWith("--")) {
-								break;
+						if(line.indexOf("?")==-1)
+						{
+							getArch(line);
+							if(FileName.compareTo("")==0)
+								FileName = "index.htm";
+							System.out.println("avr " + FileName);
+							System.out.println("Recurso solicitado: " + FileName);
+							File f = new File(FileName);
+							if(!(f.exists() && !f.isDirectory())) { 
+							    System.out.println("El archivo no existe");
+							    System.out.println("HTTP/1.0 404 Not Found");
+							    notFound404(FileName);
+							    pw.flush();
+							}
+							else {
+								pw.println("HTTP/1.0 200 Okay");
+								pw.flush();
+								pw.println();
+								pw.flush();
+								System.out.println("HTTP/1.0 200 ok");
+								System.out.println("El archivo existe");
+								System.out.println("Content-Length: " + f.length());
+								System.out.println("Content-Type: " + contentType(FileName));
+								f.delete();
+								pw.print("<html><head><title>SERVIDOR WEB");
+								pw.flush();
+								pw.print("</title></head><body bgcolor=\"#AACCFF\"><center><h1><br>Archivo eliminado</br></h1>");
+								pw.flush();
+								pw.print("<h3><b>"+ FileName +"</b></h3>");
+								pw.flush();
+								pw.print("</center></body></html>");
+								pw.flush();	
+
 							}
 						}
+						pw.flush();
 					}
 					else
 					{
@@ -161,7 +259,7 @@ public class ServidorWeb
 			{
 				int i;
 				int f;
-				if(line.toUpperCase().startsWith("GET"))
+				if(line.toUpperCase().startsWith("GET") || line.toUpperCase().startsWith("HEAD") || line.toUpperCase().startsWith("DELETE"))
 				{
 					i=line.indexOf("/");
 					f=line.indexOf(" ",i);
@@ -193,6 +291,31 @@ public class ServidorWeb
 					//msg.printErr("Transaction::sendResponse():2", "Error en la lectura del archivo: " + fileName);
 				}
 				
+			}
+			public void notFound404(String fileName) {
+						pw.println("HTTP/1.0 404 Not Found");
+						pw.flush();
+						pw.println();
+						pw.flush();
+						pw.print("<html><head><title>SERVIDOR WEB");
+						pw.flush();
+						pw.print("</title></head><body bgcolor=\"#AACCFF\"><center><h1><br>Error 404: archivo no encontrado</br></h1>");
+						pw.flush();
+						pw.print("<h3><b>"+  fileName +"</b></h3>");
+						pw.flush();
+						pw.print("</center></body></html>");
+						pw.flush();	
+			}
+			public String contentType(String fileName) {
+				int i = fileName.lastIndexOf(".");
+				String type = fileName.substring(i);
+				if (type.startsWith(".htm")|| type.startsWith(".html")) // htm html
+					type = "text/html";
+				else if (type.startsWith(".pdf")) // pdf
+					type = "application/pdf";
+				else if (type.startsWith(".jpeg") || type.startsWith(".jpg"))// jpg
+					type = "image/jpeg";
+				return type;
 			}
 			public void SendA(String arg) 
 			{
@@ -231,12 +354,15 @@ public class ServidorWeb
 				sb = sb +"Date: " + new Date()+" \n";
 				if (extension == "htm" || extension == "html") { // htm html
 					sb = sb +"Content-Type: text/html \n";
+					System.out.println("Content-Type: text/html");
 				}
 				else if (extension == "pdf") { // pdf
 					sb = sb +"Content-Type: application/pdf \n";
+					System.out.println("Content-Type: application/pdf");
 				}
 				else if (extension == "jpeg" || extension == "jpg") {// jpg
 					sb = sb +"Content-Type: image/jpeg \n";
+					System.out.println("Content-Type: image/jpeg");
 				}
 				sb = sb +"Content-Length: "+tam_archivo+" \n";
 				sb = sb +"\n";
@@ -271,10 +397,10 @@ public class ServidorWeb
 		}
 		public ServidorWeb() throws Exception
 		{
-			System.out.println("Iniciando Servidor.......");
+			System.out.println("[SERVIDOR INICIADO]");
 			this.ss=new ServerSocket(PUERTO);
-			System.out.println("Servidor iniciado:---OK");
-			System.out.println("Esperando por Cliente....");
+			System.out.println("[SERVIDOR INICIADO] OK");
+			System.out.println("[ESPERANDO CONEX CLIENTE]");
 			for(;;)
 			{
 				Socket accept=ss.accept();
