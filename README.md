@@ -14,3 +14,7 @@ El estudiante implementará una aplicación simular un carrito de compras y un t
 *   Practica 03 Servidor web
 
 El estudiante implementará una aplicación de servidor web con sockets. 
+
+*   Practica 04 wget-clone
+
+El estudiante implementará una aplicación que permite la descarga de contenidos desde servidores web de una forma simple.
